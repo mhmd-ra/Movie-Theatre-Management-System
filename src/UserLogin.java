@@ -59,16 +59,17 @@ public class UserLogin {
                 return;
             }
 
-            User user = authenticate(username, password);
+            User user = AuthenticationService.authenticate(username, password);
 
             if (user == null) {
                 messageLabel.setStyle("-fx-text-fill: red;");
                 messageLabel.setText("Invalid username or password.");
-            } else if (user.getRole().equals("manager")) {
+            } else if (user.getRole().equalsIgnoreCase("manager")) {
                 messageLabel.setStyle("-fx-text-fill: green;");
                 messageLabel.setText("Welcome Manager " + user.getFirstName() + "!");
                 // ManagerDashboard will go here
-            } else if (user.getRole().equals("customer")) {
+                new ManagerDashboard(primaryStage,user).show();
+            } else if (user.getRole().equalsIgnoreCase("customer")) {
                 messageLabel.setStyle("-fx-text-fill: green;");
                 messageLabel.setText("Welcome " + user.getFirstName() + "!");
                 // CustomerDashboard will go here
@@ -90,34 +91,4 @@ public class UserLogin {
         primaryStage.show();
     }
 
-    private User authenticate(String username, String password) {
-        User user = null;
-        Connection con = DBUtils.establishConnection();
-        try {
-            // PreparedStatement prevents SQL injection
-            String sql = "SELECT * FROM users WHERE username = ?";
-            PreparedStatement stmt = con.prepareStatement(sql);
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                String storedHash = rs.getString("password_hash");
-                // BCrypt checks the password against the stored hash
-                if (BCrypt.checkpw(password, storedHash)) {
-                    user = new User(
-                            rs.getInt("id"),
-                            rs.getString("username"),
-                            storedHash,
-                            rs.getString("role"),
-                            rs.getString("first_name"),
-                            rs.getString("last_name")
-                    );
-                }
-            }
-            DBUtils.closeConnection(con, stmt);
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return user;
-    }
 }
