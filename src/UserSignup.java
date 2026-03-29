@@ -1,107 +1,113 @@
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class UserSignup {
-    private Stage primaryStage;
+    private Stage stage;
+    private TextField usernameField = new TextField();
+    private PasswordField passwordField = new PasswordField();
+    private TextField firstNameField = new TextField();
+    private TextField lastNameField = new TextField();
 
     public UserSignup(Stage primaryStage) {
-        this.primaryStage = primaryStage;
+        this.stage = primaryStage;
     }
 
     public void initializeComponents() {
-        Label titleLabel = new Label("Create Account");
-        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        Label usernameLabel = new Label("Username:");
-        TextField usernameField = new TextField();
-        usernameField.setPromptText("2-32 chars, letters/digits/underscore");
-
-        Label passwordLabel = new Label("Password:");
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("At least 8 chars, include a letter and digit");
-
-        Label firstNameLabel = new Label("First Name:");
-        TextField firstNameField = new TextField();
-        firstNameField.setPromptText("e.g. Sara");
-
-        Label lastNameLabel = new Label("Last Name:");
-        TextField lastNameField = new TextField();
-        lastNameField.setPromptText("e.g. Ahmed");
-
-        Label messageLabel = new Label("");
-        messageLabel.setStyle("-fx-text-fill: red;");
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
 
         Button createButton = new Button("Create Account");
-        createButton.setMaxWidth(Double.MAX_VALUE);
+        createButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                registerUser();
+            }
+        });
 
         Button backButton = new Button("Back");
-        backButton.setMaxWidth(Double.MAX_VALUE);
-
-        createButton.setOnAction(e -> {
-            String username  = usernameField.getText().trim();
-            String password  = passwordField.getText().trim();
-            String firstName = firstNameField.getText().trim();
-            String lastName  = lastNameField.getText().trim();
-
-            // Input validation
-            if (username.isEmpty() || password.isEmpty() || firstName.isEmpty() || lastName.isEmpty()) {
-                messageLabel.setText("All fields are required.");
-                return;
-            }
-            if (!InputValidator.validateUsername(username)) {
-                messageLabel.setText("Invalid username. Use 2-32 letters, digits, or underscores.");
-                return;
-            }
-            if (!InputValidator.validatePassword(password)) {
-                messageLabel.setText("Password must be 8-64 chars and include a letter and digit.");
-                return;
-            }
-            if (!InputValidator.validateName(firstName)) {
-                messageLabel.setText("First name must start with a capital letter.");
-                return;
-            }
-            if (!InputValidator.validateName(lastName)) {
-                messageLabel.setText("Last name must start with a capital letter.");
-                return;
-            }
-
-            // Role is always customer for self-registration
-            boolean success = AuthenticationService.registerUser(username, password, "customer", firstName, lastName);
-
-            if (success) {
-                messageLabel.setStyle("-fx-text-fill: green;");
-                messageLabel.setText("Account created! You can now log in.");
-            } else {
-                messageLabel.setStyle("-fx-text-fill: red;");
-                messageLabel.setText("Username already exists. Please choose another.");
+        backButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                new UserLogin(stage).initializeComponents();
             }
         });
 
-        backButton.setOnAction(e -> {
-            new UserLogin(primaryStage).initializeComponents();
-        });
-
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(30));
-        layout.setAlignment(Pos.CENTER_LEFT);
         layout.getChildren().addAll(
-                titleLabel,
-                usernameLabel, usernameField,
-                passwordLabel, passwordField,
-                firstNameLabel, firstNameField,
-                lastNameLabel, lastNameField,
+                new Label("Sign Up"),
+                new Label("Username:"), usernameField,
+                new Label("Password:"), passwordField,
+                new Label("First Name:"), firstNameField,
+                new Label("Last Name:"), lastNameField,
                 createButton,
-                backButton,
-                messageLabel
+                backButton
         );
 
-        Scene scene = new Scene(layout, 400, 500);
-        primaryStage.setTitle("Sign Up");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        Scene scene = new Scene(layout, 400, 400);
+        stage.setTitle("Sign Up");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private void registerUser() {
+        String username  = usernameField.getText();
+        String password  = passwordField.getText();
+        String firstName = firstNameField.getText();
+        String lastName  = lastNameField.getText();
+
+        if (username.isEmpty() || password.isEmpty() || firstName.isEmpty() || lastName.isEmpty()) {
+            showAlert("Input Error", "All fields are required.");
+            return;
+        }
+        if (!InputValidator.validateUsername(username)) {
+            showAlert("Input Error", "Invalid username. Use 2-32 letters, digits, or underscores.");
+            return;
+        }
+        if (!InputValidator.validatePassword(password)) {
+            showAlert("Input Error", "Password must be 8-64 chars and include a letter and a digit.");
+            return;
+        }
+        if (!InputValidator.validateName(firstName)) {
+            showAlert("Input Error", "First name must start with a capital letter (e.g. Sara).");
+            return;
+        }
+        if (!InputValidator.validateName(lastName)) {
+            showAlert("Input Error", "Last name must start with a capital letter (e.g. Ahmed).");
+            return;
+        }
+
+        // Role is always customer for self-registration
+        boolean success = AuthenticationService.registerUser(username, password, "customer", firstName, lastName);
+
+        if (success) {
+            showInfo("Success", "Account created! You can now log in.");
+            new UserLogin(stage).initializeComponents();
+        } else {
+            showAlert("Error", "Username already exists. Please choose another.");
+        }
+    }
+
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void showInfo(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 }

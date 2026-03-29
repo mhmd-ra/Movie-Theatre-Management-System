@@ -61,4 +61,179 @@ public class CustomerDashboard {
         stage.show();
     }
 
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void showInfo(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+
+    private void showBrowseMovies() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        TableView<Showtime> table = new TableView<>();
+
+        TableColumn<Showtime, Integer> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
+        idCol.setPrefWidth(40);
+
+        TableColumn<Showtime, String> movieCol = new TableColumn<>("Movie");
+        movieCol.setCellValueFactory(new PropertyValueFactory<>("movieTitle"));
+        movieCol.setPrefWidth(150);
+
+        TableColumn<Showtime, String> roomCol = new TableColumn<>("Room");
+        roomCol.setCellValueFactory(new PropertyValueFactory<>("roomName"));
+        roomCol.setPrefWidth(70);
+
+        TableColumn<Showtime, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("showDate"));
+        dateCol.setPrefWidth(100);
+
+        TableColumn<Showtime, String> timeCol = new TableColumn<>("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("showTime"));
+        timeCol.setPrefWidth(70);
+
+        TableColumn<Showtime, Integer> seatsCol = new TableColumn<>("Seats Available");
+        seatsCol.setCellValueFactory(new PropertyValueFactory<>("availableSeats"));
+        seatsCol.setPrefWidth(110);
+
+        table.getColumns().addAll(idCol, movieCol, roomCol, dateCol, timeCol, seatsCol);
+
+        ObservableList<Showtime> showtimes = FXCollections.observableArrayList();
+        loadShowtimes(showtimes);
+        table.setItems(showtimes);
+
+        Label seatsLabel = new Label("Number of Seats (1-10):");
+        TextField seatsField = new TextField();
+
+        Button bookBtn = new Button("Book Selected Showtime");
+        bookBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                Showtime selected = table.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showAlert("Selection Error", "Please select a showtime from the table.");
+                    return;
+                }
+                String seatsText = seatsField.getText().trim();
+                if (!InputValidator.validateSeatCount(seatsText)) {
+                    showAlert("Input Error", "Enter a valid seat count (1-10).");
+                    return;
+                }
+                int seats = Integer.parseInt(seatsText);
+                if (seats > selected.getAvailableSeats()) {
+                    showAlert("Booking Error", "Not enough seats available.");
+                    return;
+                }
+                // safeMultiply: seats × price per seat (50 QAR) — prevents integer overflow
+                int totalPrice;
+                try {
+                    totalPrice = SafeMath.safeMultiply(seats, 50);
+                } catch (ArithmeticException e) {
+                    showAlert("Calculation Error", "Invalid seat count caused overflow.");
+                    return;
+                }
+                boolean success = bookTickets(selected.getId(), seats, totalPrice);
+                if (success) {
+                    showInfo("Booking Confirmed", "Enjoy the movie! Total: " + totalPrice + " QAR");
+                    showtimes.clear();
+                    loadShowtimes(showtimes);
+                } else {
+                    showAlert("Booking Error", "Booking failed. Please try again.");
+                }
+            }
+        });
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(
+                new Label("Available Showtimes"),
+                table,
+                seatsLabel, seatsField,
+                bookBtn, backBtn
+        );
+
+        Scene scene = new Scene(layout, 600, 520);
+        stage.setTitle("Browse Movies");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private void loadShowtimes(ObservableList<Showtime> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT s.id, m.title, r.room_name, s.show_date, s.show_time, s.available_seats " +
+                "FROM showtimes s " +
+                "JOIN movies m ON s.movie_id = m.id " +
+                "JOIN theater_rooms r ON s.room_id = r.id " +
+                "WHERE s.available_seats > 0 AND r.status = 'available' " +
+                "ORDER BY s.show_date, s.show_time;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Showtime(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getString("room_name"),
+                        rs.getString("show_date"),
+                        rs.getString("show_time"),
+                        rs.getInt("available_seats")
+                ));
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading showtimes: " + e.getMessage());
+        }
+    }
+
+    private boolean bookTickets(int showtimeId, int seats, int totalPrice) {
+        Connection con = DBUtils.establishConnection();
+        String insertBooking = "INSERT INTO bookings (customer_id, showtime_id, seats_booked, total_price, status) " +
+                "VALUES (?, ?, ?, ?, 'confirmed');";
+        String updateSeats   = "UPDATE showtimes SET available_seats = available_seats - ? WHERE id = ?;";
+        try {
+            con.setAutoCommit(false);
+
+            PreparedStatement bookStmt = con.prepareStatement(insertBooking);
+            bookStmt.setInt(1, currentUser.getId());
+            bookStmt.setInt(2, showtimeId);
+            bookStmt.setInt(3, seats);
+            bookStmt.setInt(4, totalPrice);
+            bookStmt.executeUpdate();
+
+            // safeSubtract: available_seats - seats — prevents underflow
+            PreparedStatement updateStmt = con.prepareStatement(updateSeats);
+            updateStmt.setInt(1, seats);
+            updateStmt.setInt(2, showtimeId);
+            updateStmt.executeUpdate();
+
+            con.commit();
+            con.setAutoCommit(true);
+            DBUtils.closeConnection(con, bookStmt);
+            return true;
+        } catch (Exception e) {
+            try { con.rollback(); } catch (Exception ex) { System.out.println(ex.getMessage()); }
+            System.out.println("Booking error: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+
+
 }
