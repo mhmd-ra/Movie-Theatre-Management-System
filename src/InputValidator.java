@@ -19,5 +19,13 @@ public class InputValidator {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(name);
         return matcher.matches();
+    }//end of validateName
+
+    // Password: at least 8 chars, must contain a letter and a digit
+    public static boolean validatePassword(String password) {
+        String regex = "^(?=.*[A-Za-z])(?=.*\\d).{8,64}$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(password);
+        return matcher.matches();
     }
 }
