@@ -62,7 +62,7 @@ public class UserLogin {
                 return;
             }
 
-            if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            if (!InputValidator.validateUsername(username)) {
                 messageLabel.setText("Invalid username format.");
                 return;
             }
@@ -81,6 +81,7 @@ public class UserLogin {
                 messageLabel.setStyle("-fx-text-fill: green;");
                 messageLabel.setText("Welcome " + user.getFirstName() + "!");
                 // CustomerDashboard will go here
+
             }
         });
 
