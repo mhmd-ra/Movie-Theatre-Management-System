@@ -36,4 +36,11 @@ public class InputValidator {
         Matcher matcher = pattern.matcher(seats);
         return matcher.matches();
     }//end of validateSeatCount
+
+    static public boolean validateDate(String email) {
+        String regex = "^\\d{2}([/-])\\d{2}\\1(\\d{4}|\\d{2})$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }//end of validateDate
 }
