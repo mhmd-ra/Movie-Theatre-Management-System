@@ -29,9 +29,6 @@ public class AuthenticationService {
                             rs.getString("lastname")
                     );
                 }
-                System.out.println("User found in DB");
-                System.out.println("Stored hash: " + storedPassword);
-                System.out.println("Password match: " + BCrypt.checkpw(suppliedPassword, storedPassword));
             }
 
             DBUtils.closeConnection(con, statement);
@@ -40,4 +37,27 @@ public class AuthenticationService {
         }
         return loggedInUser;
     }
+    public static boolean registerUser(String username, String plainPassword, String role,
+                                       String firstName, String lastName) {
+        String salt = BCrypt.gensalt(12);
+        String hashedPassword = BCrypt.hashpw(plainPassword, salt);
+
+        Connection con = DBUtils.establishConnection();
+        String query = "INSERT INTO users (username, password, role, firstname, lastname) VALUES (?, ?, ?, ?, ?);";
+
+        try {
+            PreparedStatement statement = con.prepareStatement(query);
+            statement.setString(1, username);
+            statement.setString(2, hashedPassword);
+            statement.setString(3, role);
+            statement.setString(4, firstName);
+            statement.setString(5, lastName);
+            int rows = statement.executeUpdate();
+            DBUtils.closeConnection(con, statement);
+            return rows == 1;
+        } catch (Exception e) {
+            System.out.println("Registration error: " + e.getMessage());
+            return false;
+        }
+    }    
 }
