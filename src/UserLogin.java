@@ -39,6 +39,14 @@ public class UserLogin {
         Button loginButton = new Button("Login");
         loginButton.setMaxWidth(Double.MAX_VALUE);
 
+        Button signUpButton = new Button("Don't have an account? Sign Up");
+        signUpButton.setMaxWidth(Double.MAX_VALUE);
+        signUpButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #0077cc; -fx-underline: true; -fx-cursor: hand;");
+
+        signUpButton.setOnAction(e -> {
+            new UserSignup(primaryStage).initializeComponents();
+        });
+
         loginButton.setOnAction(e -> {
             String username = usernameField.getText().trim();
             String password = passwordField.getText().trim();
