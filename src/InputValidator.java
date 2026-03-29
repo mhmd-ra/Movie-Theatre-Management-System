@@ -27,5 +27,13 @@ public class InputValidator {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(password);
         return matcher.matches();
-    }
+    }//end of validatePassword
+
+    // Seats: positive integer between 1 and 10 (customer can't choose more than 10 seats)
+    public static boolean validateSeatCount(String seats) {
+        String regex = "^([1-9]|10)$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(seats);
+        return matcher.matches();
+    }//end of validateSeatCount
 }
