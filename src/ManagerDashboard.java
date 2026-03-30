@@ -4,15 +4,17 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.scene.control.Separator;
-import javafx.scene.control.Alert;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,7 +28,7 @@ public class ManagerDashboard {
         this.primaryStage=primaryStage;
         this.currentUser=currentUser;
     }
-
+//menu
     public void initializeComponents() {
 
         VBox layout = new VBox(10);
@@ -37,6 +39,23 @@ public class ManagerDashboard {
         Button maintenanceBtn = new Button("Schedule Maintenance");
         Button reportBtn      = new Button("Generate Revenue Report");
         Button logoutBtn      = new Button("Logout");
+
+        scheduleBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showScheduleMovie(); }
+        });
+        viewShowsBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showAllShowtimes(); }
+        });
+        maintenanceBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showScheduleMaintenance(); }
+        });
+        reportBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showGenerateReport(); }
+        });
 
         logoutBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -53,6 +72,86 @@ public class ManagerDashboard {
 
         Scene scene = new Scene(layout, 400, 280);
         primaryStage.setTitle("Manager Dashboard");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private void showScheduleMovie() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label movieLabel = new Label("Select Movie:");
+        ComboBox<String> movieCombo = new ComboBox<>();
+        ObservableList<String> movieNames = FXCollections.observableArrayList();
+        loadMovieNames(movieNames);
+        movieCombo.setItems(movieNames);
+
+        Label roomLabel = new Label("Select Theatre Room:");
+        ComboBox<String> roomCombo = new ComboBox<>();
+        ObservableList<String> roomNames = FXCollections.observableArrayList();
+        loadRoomNames(roomNames);
+        roomCombo.setItems(roomNames);
+
+        Label dateLabel = new Label("Show Date (dd-mm-yyyy):");
+        TextField dateField = new TextField();
+
+        Label timeLabel = new Label("Show Time (HH:mm):");
+        TextField timeField = new TextField();
+
+        Button scheduleBtn = new Button("Schedule Movie");
+        scheduleBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                String movieName = movieCombo.getValue();
+                String roomName  = roomCombo.getValue();
+                String date      = dateField.getText().trim();
+                String time      = timeField.getText().trim();
+
+                if (movieName == null || roomName == null || date.isEmpty() || time.isEmpty()) {
+                    showAlert("Input Error", "All fields are required.");
+                    return;
+                }
+                if (!InputValidator.validateDate(date)) {
+                    showAlert("Input Error", "Invalid date format. Use dd-mm-yyyy.");
+                    return;
+                }
+                if (!InputValidator.validateTime(time)) {
+                    showAlert("Input Error", "Invalid time format. Use HH:mm (24-hour).");
+                    return;
+                }
+                String[] parts = date.split("-");
+                String sqlDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+
+                if (hasConflict(roomName, sqlDate, time)) {
+                    showAlert("Conflict", "Scheduling conflict detected for this room at that time.");
+                    return;
+                }
+                boolean success = insertShowtime(movieName, roomName, sqlDate, time);
+                if (success) {
+                    showInfo("Success", "Movie scheduled successfully.");
+                } else {
+                    showAlert("Error", "Failed to schedule movie. Please try again.");
+                }
+            }
+        });
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(
+                new Label("Schedule a Movie"),
+                movieLabel, movieCombo,
+                roomLabel, roomCombo,
+                dateLabel, dateField,
+                timeLabel, timeField,
+                scheduleBtn, backBtn
+        );
+
+        Scene scene = new Scene(layout, 400, 420);
+        primaryStage.setTitle("Schedule Movie");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -373,6 +472,80 @@ public class ManagerDashboard {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+
+    private void showScheduleMaintenance() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label roomLabel = new Label("Select Room:");
+        ComboBox<String> roomCombo = new ComboBox<>();
+        ObservableList<String> roomNames = FXCollections.observableArrayList();
+        loadAllRoomNames(roomNames);
+        roomCombo.setItems(roomNames);
+
+        Label dateLabel = new Label("Maintenance Date (dd-mm-yyyy):");
+        TextField dateField = new TextField();
+
+        Label durationLabel = new Label("Duration (hours, 1-24):");
+        TextField durationField = new TextField();
+
+        Label descLabel = new Label("Description:");
+        TextField descField = new TextField();
+
+        Button scheduleBtn = new Button("Schedule Maintenance");
+        scheduleBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                String roomName = roomCombo.getValue();
+                String date     = dateField.getText().trim();
+                String duration = durationField.getText().trim();
+                String desc     = descField.getText().trim();
+
+                if (roomName == null || date.isEmpty() || duration.isEmpty() || desc.isEmpty()) {
+                    showAlert("Input Error", "All fields are required.");
+                    return;
+                }
+                if (!InputValidator.validateDate(date)) {
+                    showAlert("Input Error", "Invalid date format. Use dd-mm-yyyy.");
+                    return;
+                }
+                if (!InputValidator.validateDurationHours(duration)) {
+                    showAlert("Input Error", "Duration must be a whole number between 1 and 24.");
+                    return;
+                }
+                String[] parts = date.split("-");
+                String sqlDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+
+                boolean success = insertMaintenance(roomName, sqlDate, Integer.parseInt(duration), desc);
+                if (success) {
+                    setRoomStatus(roomName, "maintenance");
+                    showInfo("Success", "Maintenance scheduled. Room marked as unavailable.");
+                } else {
+                    showAlert("Error", "Failed to schedule maintenance.");
+                }
+            }
+        });
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(
+                new Label("Schedule Room Maintenance"),
+                roomLabel, roomCombo,
+                dateLabel, dateField,
+                durationLabel, durationField,
+                descLabel, descField,
+                scheduleBtn, backBtn
+        );
+
+        Scene scene = new Scene(layout, 400, 420);
+        primaryStage.setTitle("Schedule Maintenance");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
 
