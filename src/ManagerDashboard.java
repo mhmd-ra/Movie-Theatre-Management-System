@@ -125,5 +125,77 @@ public class ManagerDashboard {
             return false;
         }
     }
-    
+
+    private void showAllShowtimes() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        TableView<Showtime> table = new TableView<>();
+
+        TableColumn<Showtime, Integer> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
+        idCol.setPrefWidth(40);
+
+        TableColumn<Showtime, String> movieCol = new TableColumn<>("Movie");
+        movieCol.setCellValueFactory(new PropertyValueFactory<>("movieTitle"));
+        movieCol.setPrefWidth(150);
+
+        TableColumn<Showtime, String> roomCol = new TableColumn<>("Room");
+        roomCol.setCellValueFactory(new PropertyValueFactory<>("roomName"));
+        roomCol.setPrefWidth(70);
+
+        TableColumn<Showtime, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("showDate"));
+        dateCol.setPrefWidth(100);
+
+        TableColumn<Showtime, String> timeCol = new TableColumn<>("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("showTime"));
+        timeCol.setPrefWidth(70);
+
+        TableColumn<Showtime, Integer> seatsCol = new TableColumn<>("Seats Left");
+        seatsCol.setCellValueFactory(new PropertyValueFactory<>("availableSeats"));
+        seatsCol.setPrefWidth(80);
+
+        table.getColumns().addAll(idCol, movieCol, roomCol, dateCol, timeCol, seatsCol);
+
+        ObservableList<Showtime> list = FXCollections.observableArrayList();
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT s.id, m.title, r.room_name, s.show_date, s.show_time, s.available_seats " +
+                "FROM showtimes s " +
+                "JOIN movies m ON s.movie_id = m.id " +
+                "JOIN theater_rooms r ON s.room_id = r.id " +
+                "ORDER BY s.show_date, s.show_time;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Showtime(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getString("room_name"),
+                        rs.getString("show_date"),
+                        rs.getString("show_time"),
+                        rs.getInt("available_seats")
+                ));
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading showtimes: " + e.getMessage());
+        }
+        table.setItems(list);
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(new Label("All Showtimes"), table, backBtn);
+
+        Scene scene = new Scene(layout, 580, 480);
+        primaryStage.setTitle("All Showtimes");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
 }
