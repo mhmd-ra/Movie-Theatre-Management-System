@@ -35,14 +35,14 @@ public class CustomerDashboard {
         Button bookingsBtn = new Button("My Bookings");
         Button logoutBtn   = new Button("Logout");
 
-//        browseBtn.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) { showBrowseMovies(); }
-//        });
-//        bookingsBtn.setOnAction(new EventHandler<ActionEvent>() {
-//            @Override
-//            public void handle(ActionEvent event) { showMyBookings(); }
-//        });
+        browseBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showBrowseMovies(); }
+        });
+        bookingsBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { showMyBookings(); }
+        });
         logoutBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
