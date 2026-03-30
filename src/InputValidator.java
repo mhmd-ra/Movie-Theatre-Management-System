@@ -43,4 +43,11 @@ public class InputValidator {
         Matcher matcher = pattern.matcher(email);
         return matcher.matches();
     }//end of validateDate
+
+    public static boolean validateDurationHours(String hours) {
+        String regex = "^([1-9]|1[0-9]|2[0-4])$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(hours);
+        return matcher.matches();
+    }//end of validatehour
 }
