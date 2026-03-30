@@ -230,4 +230,18 @@ public class ManagerDashboard {
         }
     }
 
+    private void setRoomStatus(String roomName, String status) {
+        Connection con = DBUtils.establishConnection();
+        String query = "UPDATE theater_rooms SET status = ? WHERE room_name = ?;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            stmt.setString(1, status);
+            stmt.setString(2, roomName);
+            stmt.executeUpdate();
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Room status update error: " + e.getMessage());
+        }
+    }
+
 }
