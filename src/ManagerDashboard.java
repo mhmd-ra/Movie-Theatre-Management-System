@@ -260,4 +260,50 @@ public class ManagerDashboard {
         public String getRevenue(){ return revenue.get();}
     }
 
+    private void loadReportSummary(Label revenueLabel, Label bookingsLabel, Label customersLabel) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT COUNT(*) AS total_bookings, SUM(total_price) AS total_revenue, " +
+                "COUNT(DISTINCT customer_id) AS unique_customers " +
+                "FROM bookings WHERE status = 'confirmed';";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                // safeAdd used to verify total_bookings count doesn't overflow int
+                int totalBookings = rs.getInt("total_bookings");
+                SafeMath.safeAdd(totalBookings, 0);
+                revenueLabel.setText("Total Revenue: " + rs.getInt("total_revenue") + " QAR");
+                bookingsLabel.setText("Total Bookings: " + totalBookings);
+                customersLabel.setText("Unique Customers: " + rs.getInt("unique_customers"));
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Report summary error: " + e.getMessage());
+        }
+    }
+
+    private void loadRevenuePerMovie(ObservableList<ReportRow> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT m.title, COUNT(b.id) AS total_bookings, SUM(b.total_price) AS revenue " +
+                "FROM bookings b " +
+                "JOIN showtimes s ON b.showtime_id = s.id " +
+                "JOIN movies m ON s.movie_id = m.id " +
+                "WHERE b.status = 'confirmed' " +
+                "GROUP BY m.title ORDER BY revenue DESC;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new ReportRow(
+                        rs.getString("title"),
+                        rs.getInt("total_bookings"),
+                        String.valueOf(rs.getInt("revenue"))
+                ));
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Revenue report error: " + e.getMessage());
+        }
+    }
+
 }
