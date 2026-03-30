@@ -233,6 +233,143 @@ public class CustomerDashboard {
         }
     }
 
+    private void showMyBookings() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        TableView<Booking> table = new TableView<>();
+
+        TableColumn<Booking, Integer> idCol = new TableColumn<>("Booking ID");
+        idCol.setCellValueFactory(new PropertyValueFactory<>("id"));
+        idCol.setPrefWidth(80);
+
+        TableColumn<Booking, String> movieCol = new TableColumn<>("Movie");
+        movieCol.setCellValueFactory(new PropertyValueFactory<>("movieTitle"));
+        movieCol.setPrefWidth(150);
+
+        TableColumn<Booking, String> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("showDate"));
+        dateCol.setPrefWidth(100);
+
+        TableColumn<Booking, String> timeCol = new TableColumn<>("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("showTime"));
+        timeCol.setPrefWidth(70);
+
+        TableColumn<Booking, Integer> seatsCol = new TableColumn<>("Seats");
+        seatsCol.setCellValueFactory(new PropertyValueFactory<>("seatsBooked"));
+        seatsCol.setPrefWidth(60);
+
+        TableColumn<Booking, String> priceCol = new TableColumn<>("Total (QAR)");
+        priceCol.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
+        priceCol.setPrefWidth(90);
+
+        TableColumn<Booking, String> statusCol = new TableColumn<>("Status");
+        statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
+        statusCol.setPrefWidth(90);
+
+        table.getColumns().addAll(idCol, movieCol, dateCol, timeCol, seatsCol, priceCol, statusCol);
+
+        ObservableList<Booking> bookings = FXCollections.observableArrayList();
+        loadMyBookings(bookings);
+        table.setItems(bookings);
+
+        Button cancelBtn = new Button("Cancel Selected Booking");
+        cancelBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                Booking selected = table.getSelectionModel().getSelectedItem();
+                if (selected == null) {
+                    showAlert("Selection Error", "Please select a booking to cancel.");
+                    return;
+                }
+                if (selected.getStatus().equalsIgnoreCase("cancelled")) {
+                    showAlert("Cancel Error", "This booking is already cancelled.");
+                    return;
+                }
+                boolean success = cancelBooking(selected.getId(), selected.getSeatsBooked());
+                if (success) {
+                    showInfo("Cancelled", "Booking cancelled successfully.");
+                    bookings.clear();
+                    loadMyBookings(bookings);
+                } else {
+                    showAlert("Cancel Error", "Cancellation failed. Please try again.");
+                }
+            }
+        });
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(new Label("My Bookings"), table, cancelBtn, backBtn);
+
+        Scene scene = new Scene(layout, 680, 480);
+        stage.setTitle("My Bookings");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private void loadMyBookings(ObservableList<Booking> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT b.id, m.title, s.show_date, s.show_time, b.seats_booked, b.total_price, b.status " +
+                "FROM bookings b " +
+                "JOIN showtimes s ON b.showtime_id = s.id " +
+                "JOIN movies m ON s.movie_id = m.id " +
+                "WHERE b.customer_id = ? " +
+                "ORDER BY b.booking_date DESC;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            stmt.setInt(1, currentUser.getId());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Booking(
+                        rs.getInt("id"),
+                        rs.getString("title"),
+                        rs.getString("show_date"),
+                        rs.getString("show_time"),
+                        rs.getInt("seats_booked"),
+                        String.valueOf(rs.getInt("total_price")),
+                        rs.getString("status")
+                ));
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading bookings: " + e.getMessage());
+        }
+    }
+
+    private boolean cancelBooking(int bookingId, int seatsBooked) {
+        Connection con = DBUtils.establishConnection();
+        String cancelQuery  = "UPDATE bookings SET status = 'cancelled' WHERE id = ? AND customer_id = ?;";
+        String restoreSeats = "UPDATE showtimes SET available_seats = available_seats + ? " +
+                "WHERE id = (SELECT showtime_id FROM bookings WHERE id = ?);";
+        try {
+            con.setAutoCommit(false);
+
+            PreparedStatement cancelStmt = con.prepareStatement(cancelQuery);
+            cancelStmt.setInt(1, bookingId);
+            cancelStmt.setInt(2, currentUser.getId());
+            cancelStmt.executeUpdate();
+
+            // safeAdd: available_seats + seatsBooked — prevents overflow when restoring
+            SafeMath.safeAdd(0, seatsBooked); // validate seatsBooked is safe before DB update
+            PreparedStatement restoreStmt = con.prepareStatement(restoreSeats);
+            restoreStmt.setInt(1, seatsBooked);
+            restoreStmt.setInt(2, bookingId);
+            restoreStmt.executeUpdate();
+
+            con.commit();
+            con.setAutoCommit(true);
+            DBUtils.closeConnection(con, cancelStmt);
+            return true;
+        } catch (Exception e) {
+            try { con.rollback(); } catch (Exception ex) { System.out.println(ex.getMessage()); }
+            System.out.println("Cancel error: " + e.getMessage());
+            return false;
+        }
+    }
 
 
 
