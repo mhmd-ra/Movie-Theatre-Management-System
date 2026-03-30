@@ -1,8 +1,8 @@
-import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class ManagerDashboard {
     private Stage primaryStage;
@@ -13,39 +13,26 @@ public class ManagerDashboard {
         this.currentUser=currentUser;
     }
 
-    public void show() {
-
-        Label title = new Label("Manager Dashboard");
-        Label welcome = new Label("Welcome " + currentUser.getFirstName());
-
-        Button scheduleBtn = new Button("Schedule Movie");
-        Button reportBtn = new Button("Generate Report");
-        Button maintenanceBtn = new Button("Maintenance");
-        Button logoutBtn = new Button("Logout");
-
-        scheduleBtn.setOnAction(e -> {
-            System.out.println("Go to schedule page");
-        });
-
-        reportBtn.setOnAction(e -> {
-            System.out.println("Go to reports");
-        });
-
-        maintenanceBtn.setOnAction(e -> {
-            System.out.println("Go to maintenance");
-        });
-
-        logoutBtn.setOnAction(e -> {
-            new UserLogin(primaryStage).initializeComponents();
-        });
-
-        VBox layout = new VBox(10);
-        layout.getChildren().addAll(title, welcome, scheduleBtn, reportBtn, maintenanceBtn, logoutBtn);
-
-        Scene scene = new Scene(layout, 300, 250);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+    private boolean hasConflict(String roomName, String date, String time) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT COUNT(*) FROM showtimes s " +
+                "JOIN theater_rooms r ON s.room_id = r.id " +
+                "WHERE r.room_name = ? AND s.show_date = ? " +
+                "AND ABS(TIMESTAMPDIFF(MINUTE, s.show_time, ?)) < 180;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            stmt.setString(1, roomName);
+            stmt.setString(2, date);
+            stmt.setString(3, time);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next() && rs.getInt(1) > 0) {
+                DBUtils.closeConnection(con, stmt);
+                return true;
+            }
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Conflict check error: " + e.getMessage());
+        }
+        return false;
     }
-
-
 }
