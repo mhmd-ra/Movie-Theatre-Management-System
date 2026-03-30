@@ -50,4 +50,12 @@ public class InputValidator {
         Matcher matcher = pattern.matcher(hours);
         return matcher.matches();
     }//end of validatehour
+
+    // Time: HH:mm (24-hour)
+    public static boolean validateTime(String time) {
+        String regex = "^([01][0-9]|2[0-3]):[0-5][0-9]$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(time);
+        return matcher.matches();
+    }//end of validateTime
 }
