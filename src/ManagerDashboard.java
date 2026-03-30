@@ -1,4 +1,5 @@
 import javafx.stage.Stage;
+import javafx.collections.ObservableList;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,5 +35,31 @@ public class ManagerDashboard {
             System.out.println("Conflict check error: " + e.getMessage());
         }
         return false;
+    }
+
+    private void loadMovieNames(ObservableList<String> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT title FROM movies ORDER BY title;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) list.add(rs.getString("title"));
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading movies: " + e.getMessage());
+        }
+    }
+
+    private void loadRoomNames(ObservableList<String> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT room_name FROM theater_rooms WHERE status = 'available' ORDER BY room_name;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) list.add(rs.getString("room_name"));
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading rooms: " + e.getMessage());
+        }
     }
 }
