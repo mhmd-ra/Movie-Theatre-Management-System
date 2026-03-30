@@ -15,7 +15,7 @@ public class AuthenticationService {
             ResultSet rs = statement.executeQuery();
 
             if (rs.next()) {
-                String storedPassword = rs.getString("password");
+                String storedPassword = rs.getString("password_hash");
                 // The method checkpw extracts the salt from the stored password, uses it
                 // to hash the supplied password, and then compares the two values
                 boolean correctPassword = BCrypt.checkpw(suppliedPassword, storedPassword);
@@ -43,7 +43,7 @@ public class AuthenticationService {
         String hashedPassword = BCrypt.hashpw(plainPassword, salt);
 
         Connection con = DBUtils.establishConnection();
-        String query = "INSERT INTO users (username, password, role, firstname, lastname) VALUES (?, ?, ?, ?, ?);";
+        String query = "INSERT INTO users (username, password_hash, role, firstname, lastname) VALUES (?, ?, ?, ?, ?);";
 
         try {
             PreparedStatement statement = con.prepareStatement(query);
@@ -59,5 +59,5 @@ public class AuthenticationService {
             System.out.println("Registration error: " + e.getMessage());
             return false;
         }
-    }    
+    }
 }
