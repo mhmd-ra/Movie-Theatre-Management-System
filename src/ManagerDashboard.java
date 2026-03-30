@@ -211,4 +211,23 @@ public class ManagerDashboard {
         }
     }
 
+    private boolean insertMaintenance(String roomName, String date, int duration, String desc) {
+        Connection con = DBUtils.establishConnection();
+        String query = "INSERT INTO maintenance (room_id, maintenance_date, duration_hours, description) " +
+                "VALUES ((SELECT id FROM theater_rooms WHERE room_name = ?), ?, ?, ?);";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            stmt.setString(1, roomName);
+            stmt.setString(2, date);
+            stmt.setInt(3, duration);
+            stmt.setString(4, desc);
+            int rows = stmt.executeUpdate();
+            DBUtils.closeConnection(con, stmt);
+            return rows == 1;
+        } catch (Exception e) {
+            System.out.println("Insert maintenance error: " + e.getMessage());
+            return false;
+        }
+    }
+
 }
