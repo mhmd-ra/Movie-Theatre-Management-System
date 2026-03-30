@@ -198,4 +198,17 @@ public class ManagerDashboard {
         primaryStage.show();
     }
 
+    private void loadAllRoomNames(ObservableList<String> list) {
+        Connection con = DBUtils.establishConnection();
+        String query = "SELECT room_name FROM theater_rooms ORDER BY room_name;";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) list.add(rs.getString("room_name"));
+            DBUtils.closeConnection(con, stmt);
+        } catch (Exception e) {
+            System.out.println("Error loading rooms: " + e.getMessage());
+        }
+    }
+
 }
