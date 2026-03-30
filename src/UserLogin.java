@@ -1,103 +1,95 @@
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import org.mindrot.jbcrypt.BCrypt;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 public class UserLogin {
-
-    private Stage primaryStage;
-
-    // Input validation regex
-    private static final int MAX_LENGTH = 50;
+    private Scene loginScene;
+    private TextField usernameField = new TextField();
+    private PasswordField passwordField = new PasswordField();
+    private Stage stage;
 
     public UserLogin(Stage primaryStage) {
-        this.primaryStage = primaryStage;
+        this.stage = primaryStage;
     }
 
     public void initializeComponents() {
-        Label titleLabel = new Label("Movie Theatre Login");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        VBox loginLayout = new VBox(10);
+        loginLayout.setPadding(new Insets(10));
 
-        Label userLabel = new Label("Username:");
-        TextField usernameField = new TextField();
-        usernameField.setPromptText("Enter username");
-
-        Label passLabel = new Label("Password:");
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Enter password");
-
-        Label messageLabel = new Label("");
-        messageLabel.setStyle("-fx-text-fill: red;");
-
-        Button loginButton = new Button("Login");
-        loginButton.setMaxWidth(Double.MAX_VALUE);
-
-        Button signUpButton = new Button("Don't have an account? Sign Up");
-        signUpButton.setMaxWidth(Double.MAX_VALUE);
-        signUpButton.setStyle("-fx-background-color: transparent; -fx-text-fill: #0077cc; -fx-underline: true; -fx-cursor: hand;");
-
-        signUpButton.setOnAction(e -> {
-            new UserSignup(primaryStage).initializeComponents();
-        });
-
-        loginButton.setOnAction(e -> {
-            String username = usernameField.getText().trim();
-            String password = passwordField.getText().trim();
-
-            // Input validation
-            if (username.isEmpty() || password.isEmpty()) {
-                messageLabel.setText("Please enter username and password.");
-                return;
-            }
-
-            if (username.length() > MAX_LENGTH || password.length() > MAX_LENGTH) {
-                messageLabel.setText("Input exceeds maximum allowed length.");
-                return;
-            }
-
-            if (!InputValidator.validateUsername(username)) {
-                messageLabel.setText("Invalid username format.");
-                return;
-            }
-
-            User user = AuthenticationService.authenticate(username, password);
-
-            if (user == null) {
-                messageLabel.setStyle("-fx-text-fill: red;");
-                messageLabel.setText("Invalid username or password.");
-            } else if (user.getRole().equalsIgnoreCase("manager")) {
-                messageLabel.setStyle("-fx-text-fill: green;");
-                messageLabel.setText("Welcome Manager " + user.getFirstName() + "!");
-                // ManagerDashboard will go here
-                new ManagerDashboard(primaryStage,user).show();
-            } else if (user.getRole().equalsIgnoreCase("customer")) {
-                messageLabel.setStyle("-fx-text-fill: green;");
-                messageLabel.setText("Welcome " + user.getFirstName() + "!");
-                // CustomerDashboard will go here
-
+        Button loginButton = new Button("Sign In");
+        loginButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                validateLogin();
             }
         });
 
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(30));
-        layout.setAlignment(Pos.CENTER);
-        layout.getChildren().addAll(
-                titleLabel, userLabel, usernameField,
-                passLabel, passwordField,
-                loginButton, messageLabel
+        Label orLabel = new Label("or");
+
+        Button signUpButton = new Button("Sign Up");
+        signUpButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                new UserSignUp(stage).initializeComponents();
+            }
+        });
+
+        loginLayout.getChildren().addAll(
+                new Label("Username:"), usernameField,
+                new Label("Password:"), passwordField,
+                loginButton,
+                orLabel,
+                signUpButton
         );
 
-        Scene scene = new Scene(layout, 400, 350);
-        primaryStage.setTitle("Movie Theatre Management System");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        loginScene = new Scene(loginLayout, 400, 300);
+        stage.setTitle("Movie Theatre - Login");
+        stage.setScene(loginScene);
+        stage.show();
     }
 
-}
+    private void validateLogin() {
+        String username = usernameField.getText();
+        String password = passwordField.getText();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            showAlert("Input Error", "Please enter username and password.");
+            return;
+        }
+        if (!InputValidator.validateUsername(username)) {
+            showAlert("Input Error", "Invalid username format.");
+            return;
+        }
+
+        User loggedInUser = AuthenticationService.authenticate(username, password);
+
+        if (loggedInUser != null) {
+            if (AuthorizationService.isManager(loggedInUser)) {
+                new ManagerDashboard(stage, loggedInUser).initializeComponents();
+            } else if (AuthorizationService.isCustomer(loggedInUser)) {
+                new CustomerDashboard(stage, loggedInUser).initializeComponents();
+            }
+        } else {
+            showAlert("Authentication Failed", "Invalid username or password.");
+        }
+    }
+
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+}cd ~/Desktop/Movie-Theatre-Management-System
+git add .
+git commit -m "Update UserLogin.java"
+git push
