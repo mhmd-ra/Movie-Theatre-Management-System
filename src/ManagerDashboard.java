@@ -244,4 +244,20 @@ public class ManagerDashboard {
         }
     }
 
+    public static class ReportRow {
+        private final javafx.beans.property.SimpleStringProperty  movieTitle;
+        private final javafx.beans.property.SimpleIntegerProperty totalBookings;
+        private final javafx.beans.property.SimpleStringProperty  revenue;
+
+        public ReportRow(String movieTitle, int totalBookings, String revenue) {
+            this.movieTitle = new javafx.beans.property.SimpleStringProperty(movieTitle);
+            this.totalBookings = new javafx.beans.property.SimpleIntegerProperty(totalBookings);
+            this.revenue = new javafx.beans.property.SimpleStringProperty(revenue);
+        }
+
+        public String getMovieTitle(){ return movieTitle.get();}
+        public int getTotalBookings(){ return totalBookings.get();}
+        public String getRevenue(){ return revenue.get();}
+    }
+
 }
