@@ -62,4 +62,26 @@ public class ManagerDashboard {
             System.out.println("Error loading rooms: " + e.getMessage());
         }
     }
+
+    private boolean insertShowtime(String movieTitle, String roomName, String date, String time) {
+        Connection con = DBUtils.establishConnection();
+        String query = "INSERT INTO showtimes (movie_id, room_id, show_date, show_time, available_seats) " +
+                "VALUES ((SELECT id FROM movies WHERE title = ?), " +
+                "(SELECT id FROM theater_rooms WHERE room_name = ?), ?, ?, " +
+                "(SELECT capacity FROM theater_rooms WHERE room_name = ?));";
+        try {
+            PreparedStatement stmt = con.prepareStatement(query);
+            stmt.setString(1, movieTitle);
+            stmt.setString(2, roomName);
+            stmt.setString(3, date);
+            stmt.setString(4, time);
+            stmt.setString(5, roomName);
+            int rows = stmt.executeUpdate();
+            DBUtils.closeConnection(con, stmt);
+            return rows == 1;
+        } catch (Exception e) {
+            System.out.println("Insert showtime error: " + e.getMessage());
+            return false;
+        }
+    }
 }
