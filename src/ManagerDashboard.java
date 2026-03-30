@@ -11,6 +11,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.scene.control.Separator;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -304,6 +305,57 @@ public class ManagerDashboard {
         } catch (Exception e) {
             System.out.println("Revenue report error: " + e.getMessage());
         }
+    }
+
+    private void showGenerateReport() {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label totalRevenueLabel   = new Label("Total Revenue: loading...");
+        Label totalBookingsLabel  = new Label("Total Bookings: loading...");
+        Label totalCustomersLabel = new Label("Unique Customers: loading...");
+
+        loadReportSummary(totalRevenueLabel, totalBookingsLabel, totalCustomersLabel);
+
+        TableView<ReportRow> table = new TableView<>();
+
+        TableColumn<ReportRow, String> movieCol = new TableColumn<>("Movie");
+        movieCol.setCellValueFactory(new PropertyValueFactory<>("movieTitle"));
+        movieCol.setPrefWidth(200);
+
+        TableColumn<ReportRow, Integer> bookingsCol = new TableColumn<>("Total Bookings");
+        bookingsCol.setCellValueFactory(new PropertyValueFactory<>("totalBookings"));
+        bookingsCol.setPrefWidth(110);
+
+        TableColumn<ReportRow, String> revenueCol = new TableColumn<>("Revenue (QAR)");
+        revenueCol.setCellValueFactory(new PropertyValueFactory<>("revenue"));
+        revenueCol.setPrefWidth(110);
+
+        table.getColumns().addAll(movieCol, bookingsCol, revenueCol);
+
+        ObservableList<ReportRow> rows = FXCollections.observableArrayList();
+        loadRevenuePerMovie(rows);
+        table.setItems(rows);
+
+        Button backBtn = new Button("Back");
+        backBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) { initializeComponents(); }
+        });
+
+        layout.getChildren().addAll(
+                new Label("Revenue Report"),
+                totalRevenueLabel, totalBookingsLabel, totalCustomersLabel,
+                new Separator(),
+                new Label("Revenue Per Movie:"),
+                table,
+                backBtn
+        );
+
+        Scene scene = new Scene(layout, 500, 480);
+        primaryStage.setTitle("Revenue Report");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
 }
