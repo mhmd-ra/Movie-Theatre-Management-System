@@ -38,7 +38,7 @@ public class UserLogin {
         signUpButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                new UserSignUp(stage).initializeComponents();
+                new UserSignup(stage).initializeComponents();
             }
         });
 
@@ -89,7 +89,4 @@ public class UserLogin {
         alert.setContentText(content);
         alert.showAndWait();
     }
-}cd ~/Desktop/Movie-Theatre-Management-System
-git add .
-git commit -m "Update UserLogin.java"
-git push
+}
