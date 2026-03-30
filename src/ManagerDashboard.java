@@ -1,5 +1,16 @@
-import javafx.stage.Stage;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +23,36 @@ public class ManagerDashboard {
     public ManagerDashboard(Stage primaryStage, User currentUser){
         this.primaryStage=primaryStage;
         this.currentUser=currentUser;
+    }
+
+    public void initializeComponents() {
+
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Button scheduleBtn    = new Button("Schedule a Movie");
+        Button viewShowsBtn   = new Button("View All Showtimes");
+        Button maintenanceBtn = new Button("Schedule Maintenance");
+        Button reportBtn      = new Button("Generate Revenue Report");
+        Button logoutBtn      = new Button("Logout");
+
+        logoutBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                new UserLogin(primaryStage).initializeComponents();
+            }
+        });
+
+        layout.getChildren().addAll(
+                new Label("Welcome Manager " + currentUser.getFirstName() + "!"),
+                scheduleBtn, viewShowsBtn, maintenanceBtn, reportBtn,
+                logoutBtn
+        );
+
+        Scene scene = new Scene(layout, 400, 280);
+        primaryStage.setTitle("Manager Dashboard");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     private boolean hasConflict(String roomName, String date, String time) {
@@ -84,4 +125,5 @@ public class ManagerDashboard {
             return false;
         }
     }
+    
 }
