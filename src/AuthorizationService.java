@@ -3,12 +3,12 @@ public class AuthorizationService {
         if (currentUser == null) {
             return false;
         }
-        return currentUser.getRole().equalsIgnoreCase("MANAGER");
+        return currentUser.getRole().equalsIgnoreCase("manager");
     }
-    public static boolean isUser(User currentUser) {
+    public static boolean isCustomer(User currentUser) {
         if (currentUser == null) {
             return false;
         }
-        return currentUser.getRole().equalsIgnoreCase("USER");
+        return currentUser.getRole().equalsIgnoreCase("customer");
     }
 }
